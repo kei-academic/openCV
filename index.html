@@ -1,25 +1,28 @@
 <!DOCTYPE html>
 <html>
-    <head>
-    </head>
-    <body>
-        <!-- カメラのフィードをキャプチャするためのビデオ要素を追加 -->
-        <video id="cameraFeed" autoplay style="border: 1px solid black;"></video>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>testアプリ</title>
+</head>
+<body>
+    <!-- カメラのフィードをキャプチャするためのビデオ要素を追加 -->
+    <video id="cameraFeed" autoplay style="border: 1px solid black; display: block;"></video>
 
-        <!-- 画像のキャプチャ用のキャンバス要素を追加 -->
-        <canvas style="border: 1px solid black;" id="captureCanvas" style="display: none;"></canvas>
+    <!-- 画像のキャプチャ用のキャンバス要素を追加 -->
+    <canvas style="border: 1px solid black; display: none;" id="captureCanvas"></canvas>
 
-        <!-- 写真を撮るためのボタンを追加 -->
-        <button id="captureButton">写真を撮る</button>
+    <!-- 写真を撮るためのボタンを追加 -->
+    <button id="captureButton">写真を撮る</button>
 
-        <!-- 画像を処理して表示するためのキャンバス要素を追加 -->
-        <canvas style="border: 1px solid black;" id="canvasOutput"></canvas>
+    <!-- 画像を処理して表示するためのキャンバス要素を追加 -->
+    <canvas style="border: 1px solid black; display: none;" id="canvasOutput"></canvas>
 
-        <!-- 処理結果を表示するための段落要素 -->
-        <p id="resultDisplay"></p>
+    <!-- 処理結果を表示するための段落要素 -->
+    <p id="resultDisplay"></p>
 
-        <!-- スクリプト開始 -->
-        <script type="text/javascript">
+    <!-- スクリプト開始 -->
+    <script type="text/javascript">
         // OpenCV.jsのスクリプトを非同期で読み込む設定
         const script = document.createElement('script');
         script.setAttribute('async', '');
@@ -118,6 +121,6 @@
                 rgbImage.delete();
             });
         }
-        </script>
-    </body>
+    </script>
+</body>
 </html>
