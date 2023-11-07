@@ -1,18 +1,25 @@
+<!DOCTYPE html>
 <html>
     <head>
     </head>
     <body>
         <!-- Add a video element to capture camera feed -->
-        <video id="cameraFeed" autoplay style="display: none"></video>
+        <video id="cameraFeed" autoplay style="display: none;"></video>
+
+        <!-- Add a canvas element for capturing the image -->
+        <canvas style="border: 1px solid black;" id="captureCanvas" style="display: none;"></canvas>
+
+        <!-- Button to take a photo -->
+        <button id="captureButton">Take Photo</button>
 
         <!-- Add a canvas element for processing and displaying the image -->
-        <canvas style="border: 1px solid black" id="canvasOutput"></canvas>
+        <canvas style="border: 1px solid black;" id="canvasOutput"></canvas>
 
         <script type="text/javascript">
-        const script = document.createElement("script");
-        script.setAttribute("async", "");
-        script.setAttribute("onload", "onOpenCvReady();");
-        script.setAttribute("src", "https://docs.opencv.org/master/opencv.js");
+        const script = document.createElement('script');
+        script.setAttribute('async', '');
+        script.setAttribute('onload', 'onOpenCvReady();');
+        script.setAttribute('src', 'https://docs.opencv.org/master/opencv.js');
         document.head.appendChild(script);
 
         // OpenCV.jsが読み込まれたときに呼び出されるコールバック関数
@@ -21,19 +28,22 @@
             const cv = window.cv;
             // Get the video element
             const video = document.getElementById("cameraFeed");
-            // Get the canvas element
+            // Get the canvas element for capturing the image
+            const captureCanvas = document.getElementById("captureCanvas");
+            const captureCtx = captureCanvas.getContext("2d");
+            // Get the button to capture a photo
+            const captureButton = document.getElementById("captureButton");
+            // Get the canvas element for processing and displaying the image
             const canvas = document.getElementById("canvasOutput");
             const ctx = canvas.getContext("2d");
 
             // Request access to the camera and start capturing
             if (navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices
-                .getUserMedia({ video: true })
+            navigator.mediaDevices.getUserMedia({ video: true })
                 .then(function (stream) {
                 video.srcObject = stream;
                 video.onloadedmetadata = function () {
                     video.play();
-                    captureAndProcessImage();
                 };
                 })
                 .catch(function (error) {
@@ -41,22 +51,58 @@
                 });
             }
 
-            function captureAndProcessImage() {
-            requestAnimationFrame(captureAndProcessImage);
-            // Capture a frame from the camera and draw it on the canvas
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            // Event listener to capture a photo when the button is clicked
+            captureButton.addEventListener("click", function () {
+            // Capture a frame from the camera and draw it on the capture canvas
+            captureCanvas.width = video.videoWidth;
+            captureCanvas.height = video.videoHeight;
+            captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
-            // Convert the canvas image to OpenCV Mat
-            const image = cv.imread(canvas);
+            // Convert the captured canvas image to OpenCV Mat
+            const image = cv.imread(captureCanvas);
 
-            // Your image processing code here
+            // RGB色空間に変換
+            const rgbImage = new cv.Mat();
+            cv.cvtColor(image, rgbImage, cv.COLOR_RGBA2RGB);
 
-            // Display the processed image on the canvas
+            // 画像の幅と高さを取得
+            const width = rgbImage.cols;
+            const height = rgbImage.rows;
+
+            // ピクセルごとに色をカウント
+            const colorCount = {};
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                const pixel = rgbImage.ucharPtr(y, x);
+                const color = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+                if (colorCount[color]) {
+                    colorCount[color]++;
+                } else {
+                    colorCount[color] = 1;
+                }
+                }
+            }
+
+            // Most frequent color and count
+            let mostFrequentColor = null;
+            let maxCount = 0;
+            for (const color in colorCount) {
+                if (colorCount[color] > maxCount) {
+                mostFrequentColor = color;
+                maxCount = colorCount[color];
+                }
+            }
+            console.log("Most frequent color:", mostFrequentColor, "Count:", maxCount);
+            const resultDisplay = document.getElementById("resultDisplay");
+            resultDisplay.innerHTML = `最も頻出する色: ${mostFrequentColor}, 出現回数: ${maxCount}`;
+
+            // Display the image on the canvas
             cv.imshow(canvas, image);
 
             // Release memory
             image.delete();
-            }
+            rgbImage.delete();
+            });
         }
         </script>
     </body>
