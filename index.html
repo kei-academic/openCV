@@ -1,0 +1,63 @@
+<html>
+    <head>
+    </head>
+    <body>
+        <!-- Add a video element to capture camera feed -->
+        <video id="cameraFeed" autoplay style="display: none"></video>
+
+        <!-- Add a canvas element for processing and displaying the image -->
+        <canvas style="border: 1px solid black" id="canvasOutput"></canvas>
+
+        <script type="text/javascript">
+        const script = document.createElement("script");
+        script.setAttribute("async", "");
+        script.setAttribute("onload", "onOpenCvReady();");
+        script.setAttribute("src", "https://docs.opencv.org/master/opencv.js");
+        document.head.appendChild(script);
+
+        // OpenCV.jsが読み込まれたときに呼び出されるコールバック関数
+        function onOpenCvReady() {
+            // OpenCV.jsが読み込まれた後にコードを実行
+            const cv = window.cv;
+            // Get the video element
+            const video = document.getElementById("cameraFeed");
+            // Get the canvas element
+            const canvas = document.getElementById("canvasOutput");
+            const ctx = canvas.getContext("2d");
+
+            // Request access to the camera and start capturing
+            if (navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices
+                .getUserMedia({ video: true })
+                .then(function (stream) {
+                video.srcObject = stream;
+                video.onloadedmetadata = function () {
+                    video.play();
+                    captureAndProcessImage();
+                };
+                })
+                .catch(function (error) {
+                console.log("Error accessing camera: " + error);
+                });
+            }
+
+            function captureAndProcessImage() {
+            requestAnimationFrame(captureAndProcessImage);
+            // Capture a frame from the camera and draw it on the canvas
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Convert the canvas image to OpenCV Mat
+            const image = cv.imread(canvas);
+
+            // Your image processing code here
+
+            // Display the processed image on the canvas
+            cv.imshow(canvas, image);
+
+            // Release memory
+            image.delete();
+            }
+        }
+        </script>
+    </body>
+</html>

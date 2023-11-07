@@ -1,0 +1,79 @@
+<html>
+  <head>
+  </head>
+  <body>
+    <!-- Add an img element to display the image -->
+    <img src="./img/test3.png" id="imageInput" style="display: none;">
+
+    <!-- Add a canvas element for processing and displaying the image -->
+    <canvas style="border: 1px solid black;" id="canvasOutput"></canvas>
+
+    <script type="text/javascript">
+      const script = document.createElement('script');
+      script.setAttribute('async', '');
+      script.setAttribute('onload', 'onOpenCvReady();');
+      script.setAttribute('src', 'https://docs.opencv.org/master/opencv.js');
+      document.head.appendChild(script);
+
+      // OpenCV.jsが読み込まれたときに呼び出されるコールバック関数
+      function onOpenCvReady() {
+        // OpenCV.jsが読み込まれた後にコードを実行
+        const cv = window.cv;
+        // Get the image element
+        const imgElement = document.getElementById("imageInput");
+        // Get the canvas element
+        const canvas = document.getElementById("canvasOutput");
+        const ctx = canvas.getContext("2d");
+
+        // Load the image from the img element
+        cv.onRuntimeInitialized = function () {
+          // Load the image from the img element
+          const image = cv.imread(imgElement);
+
+          // RGB色空間に変換
+          const rgbImage = new cv.Mat();
+          cv.cvtColor(image, rgbImage, cv.COLOR_RGBA2RGB);
+
+          // 画像の幅と高さを取得
+          const width = rgbImage.cols;
+          const height = rgbImage.rows;
+
+          // ピクセルごとに色をカウント
+          const colorCount = {};
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const pixel = rgbImage.ucharPtr(y, x);
+              const color = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+              if (colorCount[color]) {
+                colorCount[color]++;
+              } else {
+                colorCount[color] = 1;
+              }
+            }
+          }
+
+          // Most frequent color and count
+          let mostFrequentColor = null;
+          let maxCount = 0;
+          for (const color in colorCount) {
+            if (colorCount[color] > maxCount) {
+              mostFrequentColor = color;
+              maxCount = colorCount[color];
+            }
+          }
+          console.log("Most frequent color:", mostFrequentColor, "Count:", maxCount);
+          const resultDisplay = document.getElementById("resultDisplay");
+          resultDisplay.innerHTML = `最も頻出する色: ${mostFrequentColor}, 出現回数: ${maxCount}`;
+
+          // Display the image on the canvas
+          cv.imshow(canvas, image);
+
+          // Release memory
+          image.delete();
+          rgbImage.delete();
+        };
+      }
+    </script>
+    <div id="resultDisplay"></div>
+  </body>
+</html>
