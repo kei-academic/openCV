@@ -3,19 +3,24 @@
     <head>
     </head>
     <body>
-        <!-- Add a video element to capture camera feed -->
-        <video id="cameraFeed" autoplay style="display: none;"></video>
+        <!-- カメラのフィードをキャプチャするためのビデオ要素を追加 -->
+        <video id="cameraFeed" autoplay style="border: 1px solid black;"></video>
 
-        <!-- Add a canvas element for capturing the image -->
+        <!-- 画像のキャプチャ用のキャンバス要素を追加 -->
         <canvas style="border: 1px solid black;" id="captureCanvas" style="display: none;"></canvas>
 
-        <!-- Button to take a photo -->
-        <button id="captureButton">Take Photo</button>
+        <!-- 写真を撮るためのボタンを追加 -->
+        <button id="captureButton">写真を撮る</button>
 
-        <!-- Add a canvas element for processing and displaying the image -->
+        <!-- 画像を処理して表示するためのキャンバス要素を追加 -->
         <canvas style="border: 1px solid black;" id="canvasOutput"></canvas>
 
+        <!-- 処理結果を表示するための段落要素 -->
+        <p id="resultDisplay"></p>
+
+        <!-- スクリプト開始 -->
         <script type="text/javascript">
+        // OpenCV.jsのスクリプトを非同期で読み込む設定
         const script = document.createElement('script');
         script.setAttribute('async', '');
         script.setAttribute('onload', 'onOpenCvReady();');
@@ -25,83 +30,92 @@
         // OpenCV.jsが読み込まれたときに呼び出されるコールバック関数
         function onOpenCvReady() {
             // OpenCV.jsが読み込まれた後にコードを実行
+
+            // OpenCV.jsのオブジェクトを取得
             const cv = window.cv;
-            // Get the video element
+
+            // カメラフィード用のビデオ要素
             const video = document.getElementById("cameraFeed");
-            // Get the canvas element for capturing the image
+
+            // 画像キャプチャ用のキャンバス要素とコンテキスト
             const captureCanvas = document.getElementById("captureCanvas");
             const captureCtx = captureCanvas.getContext("2d");
-            // Get the button to capture a photo
+
+            // 写真を撮るボタン
             const captureButton = document.getElementById("captureButton");
-            // Get the canvas element for processing and displaying the image
+
+            // 画像処理結果を表示するためのキャンバス要素とコンテキスト
             const canvas = document.getElementById("canvasOutput");
             const ctx = canvas.getContext("2d");
 
-            // Request access to the camera and start capturing
+            // カメラへのアクセス設定
             if (navigator.mediaDevices.getUserMedia) {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function (stream) {
-                video.srcObject = stream;
-                video.onloadedmetadata = function () {
-                    video.play();
-                };
-                })
-                .catch(function (error) {
-                console.log("Error accessing camera: " + error);
-                });
+                // バックカメラを使用するための設定
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                    .then(function (stream) {
+                        video.srcObject = stream;
+                        video.onloadedmetadata = function () {
+                            video.play();
+                        };
+                    })
+                    .catch(function (error) {
+                        console.log("バックカメラへのアクセスエラー: " + error);
+                    });
             }
 
-            // Event listener to capture a photo when the button is clicked
+            // 写真を撮るボタンのクリックイベントリスナー
             captureButton.addEventListener("click", function () {
-            // Capture a frame from the camera and draw it on the capture canvas
-            captureCanvas.width = video.videoWidth;
-            captureCanvas.height = video.videoHeight;
-            captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+                // カメラフィードをキャンバスにコピー
+                captureCanvas.width = video.videoWidth;
+                captureCanvas.height = video.videoHeight;
+                captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
-            // Convert the captured canvas image to OpenCV Mat
-            const image = cv.imread(captureCanvas);
+                // キャンバスから画像を読み込み
+                const image = cv.imread(captureCanvas);
 
-            // RGB色空間に変換
-            const rgbImage = new cv.Mat();
-            cv.cvtColor(image, rgbImage, cv.COLOR_RGBA2RGB);
+                // 画像をRGB色空間に変換
+                const rgbImage = new cv.Mat();
+                cv.cvtColor(image, rgbImage, cv.COLOR_RGBA2RGB);
 
-            // 画像の幅と高さを取得
-            const width = rgbImage.cols;
-            const height = rgbImage.rows;
+                // 画像の幅と高さを取得
+                const width = rgbImage.cols;
+                const height = rgbImage.rows;
 
-            // ピクセルごとに色をカウント
-            const colorCount = {};
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                const pixel = rgbImage.ucharPtr(y, x);
-                const color = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
-                if (colorCount[color]) {
-                    colorCount[color]++;
-                } else {
-                    colorCount[color] = 1;
+                // ピクセルごとに色をカウント
+                const colorCount = {};
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const pixel = rgbImage.ucharPtr(y, x);
+                        const color = `rgb(${pixel[0]}, ${pixel[1]}, ${pixel[2]})`;
+                        if (colorCount[color]) {
+                            colorCount[color]++;
+                        } else {
+                            colorCount[color] = 1;
+                        }
+                    }
                 }
+
+                // 最も頻出する色とその出現回数を取得
+                let mostFrequentColor = null;
+                let maxCount = 0;
+                for (const color in colorCount) {
+                    if (colorCount[color] > maxCount) {
+                        mostFrequentColor = color;
+                        maxCount = colorCount[color];
+                    }
                 }
-            }
+                console.log("最も頻出する色:", mostFrequentColor, "出現回数:", maxCount);
 
-            // Most frequent color and count
-            let mostFrequentColor = null;
-            let maxCount = 0;
-            for (const color in colorCount) {
-                if (colorCount[color] > maxCount) {
-                mostFrequentColor = color;
-                maxCount = colorCount[color];
-                }
-            }
-            console.log("Most frequent color:", mostFrequentColor, "Count:", maxCount);
-            const resultDisplay = document.getElementById("resultDisplay");
-            resultDisplay.innerHTML = `最も頻出する色: ${mostFrequentColor}, 出現回数: ${maxCount}`;
+                // 処理結果をキャンバスに表示
+                cv.imshow(canvas, image);
 
-            // Display the image on the canvas
-            cv.imshow(canvas, image);
+                // 処理結果をHTMLに表示
+                const resultDisplay = document.getElementById("resultDisplay");
+                resultDisplay.innerHTML = `最も頻出する色: ${mostFrequentColor}, 出現回数: ${maxCount}`;
 
-            // Release memory
-            image.delete();
-            rgbImage.delete();
+                // メモリの解放
+                image.delete();
+                rgbImage.delete();
             });
         }
         </script>
